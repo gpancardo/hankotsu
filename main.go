@@ -51,9 +51,7 @@ func getColumnIndex(content Compass) (int){
 		headersLine:= scanner.Text()
 		fmt.Println("	File headers: ",headersLine)
 		//The header row string becomed a list with each element divided by a comma
-		listHeaders:=strings.Split(headersLine,",")
-		fmt.Println(listHeaders)
-		//Checks for match
+		listHeaders:=strings.Split(headersLine,",")		//Checks for match
 		for i:=0; i<=(len(listHeaders)-1); i++{
 			if (listHeaders[i]==content.Label){
 				return i
@@ -65,6 +63,8 @@ func getColumnIndex(content Compass) (int){
 		return 101
 	}
 }
+
+//Check if a string has a substring from the list we are interested in
 
 
 func main(){
@@ -91,7 +91,7 @@ func main(){
 	fmt.Println("	-⌕   Searching for ", os.Args[1])
 	fmt.Println("	-⌕   Searching for ", os.Args[2])
 	content:=loadCompass()
-	fmt.Println(content)
 	columnIndex:=getColumnIndex(content)
-	fmt.Println(columnIndex)
+	fmt.Println("")
+	fmt.Println("Label found at index ",columnIndex)
 }
