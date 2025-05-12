@@ -3,17 +3,33 @@ package main
 import (
 	"fmt"
 	"os"
+	"encoding/json"
+	"io/ioutil"
+	"log"
 )
 
-//Struct for column label and keywords
+//keywords.json sample:
+//{
+// 	"label":"sample_label",
+// 	"words":["first_word","second_word"]
+//}
 
+//Struct for column label and keywords
 type Compass struct{
 	Label string
 	Words []string
 }
 
-//Creates instance of COmpass for the current process
-func loadCompass()
+//Gets JSON information for compass
+func loadCompass(){
+	content, err := ioutil.ReadFile(os.Args[2])
+	if err != nil{
+		log.Fatal("Error when reading ",os.Args[2],err)
+	}
+	var currentCompass Compass
+	json.Unmarshal(content, &currentCompass)
+	fmt.Println("	Looking for ",currentCompass.Label)
+}
 
 
 func main(){
@@ -39,4 +55,5 @@ func main(){
 
 	fmt.Println("	-⌕   Searching for ", os.Args[1])
 	fmt.Println("	-⌕   Searching for ", os.Args[2])
+	loadCompass()
 }
