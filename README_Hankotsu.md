@@ -5,3 +5,4 @@ Dealing with datasets bigger than memory with limited resources is hard and time
 ## Why Go?
 I am developing this tool to build the dataset I will use for another project, so time is key.\
 Go has a great development experience and I am also way more familiar with it than similar alternatives. It is a very efficient language that will have a (hopefully) quick and fun development.
+## Tutorial
