@@ -67,7 +67,9 @@ func getColumnIndex(content Compass) (int){
 //Check if a string has a substring from the list we are interested in
 
 
-func main(){
+
+//Start menu
+func start(){
 	fmt.Println("")
 	fmt.Println("--- HANKOTSU---")
 	fmt.Println("")
@@ -81,15 +83,22 @@ func main(){
 	//The program name counts as an argument to the os library, but it's a baseline for us
 	if len(os.Args) != 3{
 		fmt.Println("")
-		fmt.Println("(´•︵•`)")
 		fmt.Println("You should use Hankotsu as follows:")
+		fmt.Println("(´•︵•`)")
 		fmt.Println("")
 		fmt.Println("	hankotsu ORIGINAL.CSV KEYWORD.JSON")
 		fmt.Println("")
+		os.Exit(0)
 	}
 
 	fmt.Println("	-⌕   Searching for ", os.Args[1])
 	fmt.Println("	-⌕   Searching for ", os.Args[2])
+}
+
+
+
+func main(){
+	start()
 	content:=loadCompass()
 	columnIndex:=getColumnIndex(content)
 	fmt.Println("")
