@@ -5,6 +5,17 @@ import (
 	"os"
 )
 
+//Struct for column label and keywords
+
+type Compass struct{
+	Label string
+	Words []string
+}
+
+//Creates instance of COmpass for the current process
+func loadCompass()
+
+
 func main(){
 	fmt.Println("")
 	fmt.Println("--- HANKOTSU---")
