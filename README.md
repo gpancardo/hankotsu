@@ -25,4 +25,4 @@ Pre-build version comming soon!
     "words":["A", "LIST", "OF", "THE", "KEYWORDS", "YOU", "ARE", "LOOKING", "FOR"]
 }
 ```
-3. Call __hankotsu__ __path of your original CSV file__ __path of the JSON with the column label and keywords__
+3. Call ```hankotsu  PATH_OF_YOUR_ORIGINAL_CSV_FILE  PATH_OF_YOUR_JSON_FILE```
