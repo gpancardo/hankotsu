@@ -65,10 +65,13 @@ func getColumnIndex(content Compass) int {
 }
 
 // Check if a string has a substring from the list we are interested in
-func substringCheck(keywordList []string, originalValue string) {
+func substringCheck(keywordList []string, originalValue string) bool {
 	for j := 0; j <= (len(keywordList) - 1); j++ {
-
+		if strings.Contains(originalValue, keywordList[j]) {
+			return true
+		}
 	}
+	return false
 }
 
 // Start menu
