@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -74,6 +75,116 @@ func substringCheck(keywordList []string, originalValue string) bool {
 	return false
 }
 
+func extractColumn(line string, targetIndex int) string {
+	var (
+		col      = 0     // current column counter
+		startPos = 0     // byte index where the target field begins
+		inField  = false // have we reached the target field yet?
+	)
+
+	// Iterate over each byte in the line
+	for i := 0; i < len(line); i++ {
+		switch line[i] {
+		case ',':
+			// On a comma, we move to the next column
+			if inField {
+				// If we were in the target field, endPos is i (just before comma)
+				return strings.TrimSpace(line[startPos:i])
+			}
+			col++
+			if col == targetIndex {
+				// The character after this comma is the start of our target field
+				startPos = i + 1
+				inField = true
+			}
+		case '\n', '\r':
+			// End of line: if we are in the target field, slice from startPos to here
+			if inField {
+				return strings.TrimSpace(line[startPos:i])
+			}
+			// Otherwise, we've reached EOL before finding the target
+			return ""
+		default:
+			// If we just entered the target field (col==targetIndex and inField false),
+			// mark its start at the current index before any delimiter.
+			if col == targetIndex && !inField {
+				startPos = i
+				inField = true
+			}
+		}
+	}
+
+	// If the loop completes, we may have the target as the last field (no trailing newline/comma)
+	if inField {
+		return strings.TrimSpace(line[startPos:])
+	}
+	// Column not found or line too short
+	return ""
+}
+
+func filterCSVStream(content Compass, targetIndex int) error {
+	// 1. Infer filenames from os.Args
+	inputFile := os.Args[1]
+	outputFile := "READY_" + inputFile
+
+	// 2. Open the input CSV for streaming read
+	inFile, err := os.Open(inputFile)
+	if err != nil {
+		return fmt.Errorf("opening input file %q: %w", inputFile, err)
+	}
+	defer inFile.Close()
+
+	// 3. Create/truncate the output CSV
+	outFile, err := os.Create(outputFile)
+	if err != nil {
+		return fmt.Errorf("creating output file %q: %w", outputFile, err)
+	}
+	defer outFile.Close()
+
+	// 4. Wrap in buffered I/O to keep memory usage constant
+	reader := bufio.NewReader(inFile)
+	writer := bufio.NewWriter(outFile)
+	defer writer.Flush()
+
+	// 5. Copy the header row verbatim
+	header, err := reader.ReadString('\n')
+	if err != nil {
+		return fmt.Errorf("reading header: %w", err)
+	}
+	if _, err := writer.WriteString(header); err != nil {
+		return fmt.Errorf("writing header: %w", err)
+	}
+
+	// 6. Stream through each subsequent row
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break // end of file
+			}
+			return fmt.Errorf("reading row: %w", err)
+		}
+
+		// 7. Extract only the relevant column using the provided index
+		value := extractColumn(line, targetIndex)
+		if value == "" {
+			// skip if empty or extraction failed
+			continue
+		}
+
+		// 8. Use your existing substringCheck on this single field
+		if substringCheck(content.Words, value) {
+			// 9. Write the full CSV row to output on match
+			if _, err := writer.WriteString(line); err != nil {
+				return fmt.Errorf("writing matched row: %w", err)
+			}
+		}
+		// otherwise drop the row
+	}
+
+	return nil
+}
+
 // Start menu
 func start() {
 	fmt.Println("")
@@ -107,4 +218,5 @@ func main() {
 	columnIndex := getColumnIndex(content)
 	fmt.Println("")
 	fmt.Println("Label found at index ", columnIndex)
+	filterCSVStream(content, columnIndex)
 }
