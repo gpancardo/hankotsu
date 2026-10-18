@@ -78,6 +78,19 @@ id,city,name
 3,Mexico City,Sofía
 ```
 
+### Benchmark
+A 1.3 GB file with 15 million rows, keeping the two states that match (1,364,001 rows):
+
+| Tool | Time | Peak memory |
+| --- | --- | --- |
+| **Hankotsu** | **3.8 s** | **8 MB** |
+| pandas (`read_csv`, then filter) | 41.4 s | 2.9 GB |
+
+Measured with `/usr/bin/time -v` on a 2017 laptop (Intel i5-8350U, 23 GB RAM, SSD), file already
+in the disk cache, one run each. Both produce the same 1,364,001 rows. pandas could also be made
+to stream with `chunksize`; the point is that Hankotsu does it by default, with no code to write.
+To reproduce: `python3 bench/gen_csv.py complaints.csv` (seeded, same file every time).
+
 ### Good to know
 - Matching is a case-sensitive substring match: `"Mexico"` matches `Mexico City` but not `MEXICO`.
 - The file must be comma-separated. Fields that contain commas inside quotes are not supported yet.
