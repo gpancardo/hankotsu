@@ -8,8 +8,12 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
+
+// Set at build time for releases: -ldflags "-X main.version=v1.0.0"
+var version = "dev"
 
 //keywords.json sample:
 //{
@@ -31,17 +35,19 @@ func loadCompass() (currentCompass Compass) {
 	}
 	var compass Compass
 	//json.Unmarshal writes the JSON content straight into the struct instance
-	json.Unmarshal(content, &compass)
+	if err := json.Unmarshal(content, &compass); err != nil {
+		log.Fatal("Error when parsing ", os.Args[2], ": ", err)
+	}
 	fmt.Println("	Looking for ", compass.Label)
 	return compass
 }
 
 // Gets the index of the column with the label we are looking for
-func getColumnIndex(content Compass) int {
+func getColumnIndex(content Compass, inputFile string) int {
 	//We will use os.Open to check for the headers only, solving the issue with memory
-	file, err := os.Open(os.Args[1])
+	file, err := os.Open(inputFile)
 	if err != nil {
-		log.Fatal("Error when reading ", os.Args[1], err)
+		log.Fatal("Error when reading ", inputFile, err)
 	}
 	defer file.Close()
 
@@ -58,10 +64,10 @@ func getColumnIndex(content Compass) int {
 				return i
 			}
 		}
-		return 100
+		return -1
 	} else {
 		fmt.Println("File empty or with issues")
-		return 101
+		return -1
 	}
 }
 
@@ -122,10 +128,9 @@ func extractColumn(line string, targetIndex int) string {
 	return ""
 }
 
-func filterCSVStream(content Compass, targetIndex int) error {
-	// 1. Infer filenames from os.Args
-	inputFile := os.Args[1]
-	outputFile := "READY_" + inputFile
+func filterCSVStream(content Compass, targetIndex int, inputFile string) error {
+	// 1. The output goes next to the input: data/a.csv -> data/READY_a.csv
+	outputFile := filepath.Join(filepath.Dir(inputFile), "READY_"+filepath.Base(inputFile))
 
 	// 2. Open the input CSV for streaming read
 	inFile, err := os.Open(inputFile)
@@ -148,7 +153,7 @@ func filterCSVStream(content Compass, targetIndex int) error {
 
 	// 5. Copy the header row verbatim
 	header, err := reader.ReadString('\n')
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return fmt.Errorf("reading header: %w", err)
 	}
 	if _, err := writer.WriteString(header); err != nil {
@@ -158,11 +163,11 @@ func filterCSVStream(content Compass, targetIndex int) error {
 	// 6. Stream through each subsequent row
 	for {
 		line, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				break // end of file
-			}
+		if err != nil && err != io.EOF {
 			return fmt.Errorf("reading row: %w", err)
+		}
+		if line == "" {
+			break // end of file
 		}
 
 		// 7. Extract only the relevant column using the provided index
@@ -180,6 +185,9 @@ func filterCSVStream(content Compass, targetIndex int) error {
 			}
 		}
 		// otherwise drop the row
+		if err == io.EOF {
+			break // last row had no trailing newline; it was processed above
+		}
 	}
 
 	return nil
@@ -187,6 +195,11 @@ func filterCSVStream(content Compass, targetIndex int) error {
 
 // Start menu
 func start() {
+	if len(os.Args) == 2 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
+		fmt.Println("hankotsu", version)
+		os.Exit(0)
+	}
+
 	fmt.Println("")
 	fmt.Println("--- HANKOTSU---")
 	fmt.Println("")
@@ -215,8 +228,13 @@ func start() {
 func main() {
 	start()
 	content := loadCompass()
-	columnIndex := getColumnIndex(content)
+	columnIndex := getColumnIndex(content, os.Args[1])
+	if columnIndex < 0 {
+		log.Fatalf("Column %q not found in the header of %s", content.Label, os.Args[1])
+	}
 	fmt.Println("")
 	fmt.Println("Label found at index ", columnIndex)
-	filterCSVStream(content, columnIndex)
+	if err := filterCSVStream(content, columnIndex, os.Args[1]); err != nil {
+		log.Fatal(err)
+	}
 }
